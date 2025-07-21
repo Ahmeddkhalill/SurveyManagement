@@ -1,5 +1,10 @@
 var builder = WebApplication.CreateBuilder(args);
 
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ??
+    throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseSqlServer(connectionString));
 // Add services to the container.
 
 builder.Services.AddControllers();
@@ -7,7 +12,16 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddEndpointsApiExplorer();
 
+// Add Mapster
+var mappingConfig = TypeAdapterConfig.GlobalSettings;
+mappingConfig.Scan(Assembly.GetExecutingAssembly());
+
+builder.Services.AddSingleton<IMapper>(new Mapper(mappingConfig));
+
 builder.Services.AddScoped<IPollService, PollService>();
+
+builder.Services.AddFluentValidationAutoValidation()
+    .AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
 
 var app = builder.Build();
 

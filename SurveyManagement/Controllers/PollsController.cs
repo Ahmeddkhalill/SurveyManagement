@@ -7,32 +7,40 @@ public class PollsController(IPollService pollService) : ControllerBase
     private readonly IPollService _pollService = pollService;
 
     [HttpGet("")]
-    public IActionResult GetAll()
+    public async Task<IActionResult> GetAll()
     {
-        return Ok(_pollService.GetAll());
+        var polls = await _pollService.GetAllAsync();
+        
+        var response = polls.Adapt<IEnumerable<PollResponse>>();
+        
+        return Ok(response);
     }
 
     [HttpGet("{id}")]
-    public IActionResult Get(int id)
+    public async Task<IActionResult> Get([FromRoute] int id)
     {
-        var poll = _pollService.Get(id);
+        var poll =await _pollService.GetAsync(id);
 
-        return poll is null ? NotFound() : Ok(poll);
+        if (poll is null)
+            return NotFound();
+
+        var response = poll.Adapt<PollResponse>();
+        return Ok(response);
     }
 
     [HttpPost("")]
-    public IActionResult Add(Poll request)
+    public async Task<IActionResult> Add([FromBody] Poll request)
     {
-        var newPoll = _pollService.Add(request);
+        var newPoll =await _pollService.AddAsync(request.Adapt<Poll>());
 
         return CreatedAtAction(nameof(Get), new { id = newPoll.Id }, newPoll);
     }
 
     [HttpPut("{id}")]
-    public IActionResult Update(int id, Poll request)
+    public async Task<IActionResult> Update([FromRoute] int id, [FromBody] PollRequest request)
     {
-        var isUpdated = _pollService.Update(id, request);
-        
+        var isUpdated = await _pollService.UpdateAsync(id, request.Adapt<Poll>());
+
         if (!isUpdated)
             return NotFound();
 
@@ -40,11 +48,22 @@ public class PollsController(IPollService pollService) : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    public IActionResult Delete(int id)
+    public async Task<IActionResult> Delete([FromRoute] int id)
     {
-        var isDeleted = _pollService.Delete(id);
+        var isDeleted = await _pollService.DeleteAsync(id);
 
         if (!isDeleted)
+            return NotFound();
+
+        return NoContent();
+    }
+
+    [HttpPut("{id}/togglePublish")]
+    public async Task<IActionResult> TogglePublish([FromRoute] int id)
+    {
+        var isUpdated = await _pollService.TogglePublishStatusAsync(id);
+
+        if (!isUpdated)
             return NotFound();
 
         return NoContent();
