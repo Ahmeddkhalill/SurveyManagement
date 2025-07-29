@@ -1,4 +1,6 @@
-﻿namespace SurveyManagement.Controllers;
+﻿using Microsoft.AspNetCore.Authorization;
+
+namespace SurveyManagement.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
@@ -7,6 +9,7 @@ public class PollsController(IPollService pollService) : ControllerBase
     private readonly IPollService _pollService = pollService;
 
     [HttpGet("")]
+    [Authorize]
     public async Task<IActionResult> GetAll()
     {
         var polls = await _pollService.GetAllAsync();
