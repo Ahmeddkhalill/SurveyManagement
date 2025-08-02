@@ -1,6 +1,6 @@
 ﻿namespace SurveyManagement.Models;
 
-public sealed class Poll
+public sealed class Poll : AuditableEntity
 {
     public int Id { get; set; }
     public string Title { get; set; } = string.Empty;
