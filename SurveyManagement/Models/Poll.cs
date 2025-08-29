@@ -1,4 +1,7 @@
-﻿namespace SurveyManagement.Models;
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace SurveyManagement.Models;
 
 public sealed class Poll : AuditableEntity
 {
