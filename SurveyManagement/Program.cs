@@ -1,7 +1,3 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Reflection;
 using System.Text;
@@ -19,7 +15,6 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
-// Configure Swagger
 builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo
@@ -70,6 +65,9 @@ builder.Services.AddSingleton<IJwtProvider, JwtProvider>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IPollService, PollService>();
 
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
+
 builder.Services.AddFluentValidationAutoValidation()
     .AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
 
@@ -78,6 +76,7 @@ builder.Services.AddAuthentication(options =>
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 })
+
 .AddJwtBearer(o =>
 {
     o.SaveToken = true;
@@ -95,18 +94,23 @@ builder.Services.AddAuthentication(options =>
 
 var app = builder.Build();
 
-// Enable Swagger and Swagger UI
 app.UseSwagger();
+
 app.UseSwaggerUI(c =>
 {
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "Survey Management API v1");
-    c.DocumentTitle = "Survey Management API Docs";
+    c.DocumentTitle = "Survey Management API";
     c.RoutePrefix = string.Empty; // Makes Swagger UI available at root URL (/)
 });
 
 app.UseHttpsRedirection();
+
 app.UseAuthentication();
+
 app.UseAuthorization();
+
 app.MapControllers();
+
+app.UseExceptionHandler();
 
 app.Run();

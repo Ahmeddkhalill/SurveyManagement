@@ -31,9 +31,10 @@ public class PollsController(IPollService pollService) : ControllerBase
     public async Task<IActionResult> Add([FromBody] PollRequest request,
         CancellationToken cancellationToken)
     {
-        var newPoll = await _pollService.AddAsync(request, cancellationToken);
-
-        return CreatedAtAction(nameof(Get), new { id = newPoll.Id }, newPoll);
+        var result = await _pollService.AddAsync(request, cancellationToken);
+        return result.IsSuccess
+            ? CreatedAtAction(nameof(Get), new { id = result.Value.Id }, result.Value)
+            : result.ToProblem();
     }
 
     [HttpPut("{id}")]
@@ -41,7 +42,6 @@ public class PollsController(IPollService pollService) : ControllerBase
         CancellationToken cancellationToken)
     {
         var result = await _pollService.UpdateAsync(id, request, cancellationToken);
-
         return result.IsSuccess ? NoContent() : result.ToProblem();
     }
 
