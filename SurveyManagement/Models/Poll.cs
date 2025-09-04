@@ -1,7 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
-
-namespace SurveyManagement.Models;
+﻿namespace SurveyManagement.Models;
 
 public sealed class Poll : AuditableEntity
 {
@@ -11,4 +8,8 @@ public sealed class Poll : AuditableEntity
     public bool IsPublished { get; set; } 
     public DateTime StartsAt { get; set; }
     public DateTime EndsAt { get; set; }
+
+    public ICollection<Question> Questions { get; set; } = [];
+    public ICollection<Vote> Votes { get; set; } = [];
+
 }

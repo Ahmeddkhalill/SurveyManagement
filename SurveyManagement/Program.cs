@@ -64,6 +64,7 @@ builder.Services.AddSingleton<IMapper>(new Mapper(mappingConfig));
 builder.Services.AddSingleton<IJwtProvider, JwtProvider>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IPollService, PollService>();
+builder.Services.AddScoped<IQuestionService, QuestionService>();
 
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
@@ -100,7 +101,7 @@ app.UseSwaggerUI(c =>
 {
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "Survey Management API v1");
     c.DocumentTitle = "Survey Management API";
-    c.RoutePrefix = string.Empty; // Makes Swagger UI available at root URL (/)
+    c.RoutePrefix = string.Empty; 
 });
 
 app.UseHttpsRedirection();
