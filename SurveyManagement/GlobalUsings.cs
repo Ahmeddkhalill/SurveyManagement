@@ -11,6 +11,7 @@ global using SurveyManagement.Contracts.Polls;
 global using SurveyManagement.Authentication;
 global using SurveyManagement.Abstractions;
 global using SurveyManagement.Persistence;
+global using SurveyManagement.Extensions;
 global using SurveyManagement.Services;
 global using SurveyManagement.Models;
 global using SurveyManagement.Errors;
