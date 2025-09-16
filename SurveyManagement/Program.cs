@@ -1,8 +1,18 @@
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.OpenApi.Models;
+using Serilog;
+using SurveyManagement.Settings;
 using System.Reflection;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Host.UseSerilog((context, configuration) =>
+    configuration.ReadFrom.Configuration(context.Configuration)
+);
+
+builder.Services.AddHybridCache();
 
 var configuration = builder.Configuration;
 
@@ -53,7 +63,8 @@ var mappingConfig = TypeAdapterConfig.GlobalSettings;
 mappingConfig.Scan(Assembly.GetExecutingAssembly());
 
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
-    .AddEntityFrameworkStores<ApplicationDbContext>();
+    .AddEntityFrameworkStores<ApplicationDbContext>()
+    .AddDefaultTokenProviders();
 
 builder.Services.AddOptions<JwtOptions>().BindConfiguration(JwtOptions.SectionName)
     .ValidateDataAnnotations().ValidateOnStart();
@@ -63,13 +74,18 @@ var jwtSettings = configuration.GetSection(JwtOptions.SectionName).Get<JwtOption
 builder.Services.AddSingleton<IMapper>(new Mapper(mappingConfig));
 builder.Services.AddSingleton<IJwtProvider, JwtProvider>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IEmailSender, EmailService>();
 builder.Services.AddScoped<IPollService, PollService>();
 builder.Services.AddScoped<IQuestionService, QuestionService>();
 builder.Services.AddScoped<IVoteService, VoteService>();
 builder.Services.AddScoped<IResultService, ResultService>();
 
+builder.Services.Configure<MailSettings>(configuration.GetSection(nameof(MailSettings)));
+
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
+
+builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddFluentValidationAutoValidation()
     .AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
@@ -95,6 +111,13 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
+builder.Services.Configure<IdentityOptions>(options =>
+{
+    options.Password.RequiredLength = 8;
+    options.SignIn.RequireConfirmedEmail = true;
+    options.User.RequireUniqueEmail = true;
+});
+
 var app = builder.Build();
 
 app.UseSwagger();
@@ -105,6 +128,8 @@ app.UseSwaggerUI(c =>
     c.DocumentTitle = "Survey Management API";
     c.RoutePrefix = string.Empty; 
 });
+
+app.UseSerilogRequestLogging();
 
 app.UseHttpsRedirection();
 
