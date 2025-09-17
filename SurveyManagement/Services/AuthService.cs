@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity.UI.Services;
+﻿using Hangfire;
+using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.WebUtilities;
 using SurveyManagement.Helpers;
 using System.Security.Cryptography;
@@ -51,33 +52,6 @@ public class AuthService(
 
         return Result.Failure<AuthResponse>(result.IsNotAllowed ? UserErrors.EmailNotConfirmed : UserErrors.InvalidCredentials);
     }
-
-    //public async Task<OneOf<AuthResponse, Error>> GetTokenAsync(string email, string password, CancellationToken cancellationToken = default)
-    //{
-    //    var user = await _userManager.FindByEmailAsync(email);
-
-    //    if (user is null)
-    //        return UserErrors.InvalidCredentials;
-
-    //    var isValidPassword = await _userManager.CheckPasswordAsync(user, password);
-
-    //    if (!isValidPassword)
-    //        return UserErrors.InvalidCredentials;
-
-    //    var (token, expiresIn) = _jwtProvider.GenerateToken(user);
-    //    var refreshToken = GenerateRefreshToken();
-    //    var refreshTokenExpiration = DateTime.UtcNow.AddDays(_refreshTokenExpiryDays);
-
-    //    user.RefreshTokens.Add(new RefreshToken
-    //    {
-    //        Token = refreshToken,
-    //        ExpiresOn = refreshTokenExpiration
-    //    });
-
-    //    await _userManager.UpdateAsync(user);
-
-    //    return new AuthResponse(user.Id, user.Email, user.FirstName, user.LastName, token, expiresIn, refreshToken, refreshTokenExpiration);
-    //}
 
     public async Task<Result<AuthResponse>> GetRefreshTokenAsync(string token, string refreshToken, CancellationToken cancellationToken = default)
     {
@@ -231,6 +205,8 @@ public class AuthService(
             }
         );
 
-        await _emailSender.SendEmailAsync(user.Email!, "✅ Survey Basket: Email Confirmation", emailBody);
+        BackgroundJob.Enqueue(() => _emailSender.SendEmailAsync(user.Email!, "✅ Survey Management: Email Confirmation", emailBody));
+
+        await Task.CompletedTask;
     }
 }

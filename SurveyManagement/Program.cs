@@ -1,3 +1,5 @@
+using Hangfire;
+using HangfireBasicAuthenticationFilter;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.OpenApi.Models;
@@ -69,6 +71,16 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
 builder.Services.AddOptions<JwtOptions>().BindConfiguration(JwtOptions.SectionName)
     .ValidateDataAnnotations().ValidateOnStart();
 
+// Add Hangfire services.
+builder.Services.AddHangfire(config => config
+    .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+    .UseSimpleAssemblyNameTypeSerializer()
+    .UseRecommendedSerializerSettings()
+    .UseSqlServerStorage(configuration.GetConnectionString("HangfireConnection")));
+
+// Add the processing server as IHostedService
+builder.Services.AddHangfireServer();
+
 var jwtSettings = configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>();
 
 builder.Services.AddSingleton<IMapper>(new Mapper(mappingConfig));
@@ -79,6 +91,8 @@ builder.Services.AddScoped<IPollService, PollService>();
 builder.Services.AddScoped<IQuestionService, QuestionService>();
 builder.Services.AddScoped<IVoteService, VoteService>();
 builder.Services.AddScoped<IResultService, ResultService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+
 
 builder.Services.Configure<MailSettings>(configuration.GetSection(nameof(MailSettings)));
 
@@ -86,6 +100,8 @@ builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 
 builder.Services.AddHttpContextAccessor();
+
+
 
 builder.Services.AddFluentValidationAutoValidation()
     .AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
@@ -132,6 +148,25 @@ app.UseSwaggerUI(c =>
 app.UseSerilogRequestLogging();
 
 app.UseHttpsRedirection();
+
+app.UseHangfireDashboard("/jobs", new DashboardOptions
+{
+    Authorization = 
+    [
+        new HangfireCustomBasicAuthenticationFilter
+        {
+            User = app.Configuration.GetValue<string>("HangfireSettings:Username"),
+            Pass = app.Configuration.GetValue<string>("HangfireSettings:Password")
+        }
+    ],
+    DashboardTitle = "Survey Management Dashboard"
+});
+
+var scopeFactory = app.Services.GetRequiredService<IServiceScopeFactory>();
+using var scope = scopeFactory.CreateScope();
+var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
+
+RecurringJob.AddOrUpdate("SendNewPollsNotification ", () => notificationService.SendNewPollsNotification(null), Cron.Daily);
 
 app.UseAuthentication();
 
