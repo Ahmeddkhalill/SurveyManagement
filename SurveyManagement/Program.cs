@@ -92,7 +92,7 @@ builder.Services.AddScoped<IQuestionService, QuestionService>();
 builder.Services.AddScoped<IVoteService, VoteService>();
 builder.Services.AddScoped<IResultService, ResultService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
-
+builder.Services.AddScoped<IUserService, UserService>();
 
 builder.Services.Configure<MailSettings>(configuration.GetSection(nameof(MailSettings)));
 
