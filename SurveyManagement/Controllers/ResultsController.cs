@@ -2,8 +2,7 @@
 
 [Route("api/Polls/{PollId}[controller]")]
 [ApiController]
-[Authorize]
-
+[HasPermission(Permissions.Results)]
 public class ResultsController(IResultService resultService) : ControllerBase
 {
     private readonly IResultService _resultService = resultService;

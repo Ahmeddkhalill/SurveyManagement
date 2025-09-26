@@ -64,7 +64,7 @@ builder.Services.AddSwaggerGen(options =>
 var mappingConfig = TypeAdapterConfig.GlobalSettings;
 mappingConfig.Scan(Assembly.GetExecutingAssembly());
 
-builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
+builder.Services.AddIdentity<ApplicationUser, ApplicationRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
 
@@ -85,6 +85,10 @@ var jwtSettings = configuration.GetSection(JwtOptions.SectionName).Get<JwtOption
 
 builder.Services.AddSingleton<IMapper>(new Mapper(mappingConfig));
 builder.Services.AddSingleton<IJwtProvider, JwtProvider>();
+
+builder.Services.AddTransient<IAuthorizationHandler, PermissionAuthorizationHandler>();
+builder.Services.AddTransient<IAuthorizationPolicyProvider, PermissionAuthorizationPolicyProvider>();
+
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IEmailSender, EmailService>();
 builder.Services.AddScoped<IPollService, PollService>();

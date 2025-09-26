@@ -7,6 +7,8 @@ global using Microsoft.AspNetCore.Identity;
 global using Microsoft.AspNetCore.Mvc;
 
 global using SurveyManagement.Contracts.Authentication;
+global using SurveyManagement.Authentication.Filters;
+global using SurveyManagement.Abstractions.Consts;
 global using SurveyManagement.Contracts.Polls;
 global using SurveyManagement.Authentication;
 global using SurveyManagement.Abstractions;
