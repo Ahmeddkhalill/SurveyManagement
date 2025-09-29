@@ -1,6 +1,5 @@
 using Hangfire;
 using HangfireBasicAuthenticationFilter;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.OpenApi.Models;
 using Serilog;
@@ -90,6 +89,7 @@ builder.Services.AddTransient<IAuthorizationHandler, PermissionAuthorizationHand
 builder.Services.AddTransient<IAuthorizationPolicyProvider, PermissionAuthorizationPolicyProvider>();
 
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<IEmailSender, EmailService>();
 builder.Services.AddScoped<IPollService, PollService>();
 builder.Services.AddScoped<IQuestionService, QuestionService>();
