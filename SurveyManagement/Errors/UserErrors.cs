@@ -5,6 +5,20 @@ public static class UserErrors
     public static readonly Error InvalidCredentials =
         new Error("User.InvalidCredentials", "Invalid email/password", StatusCodes.Status401Unauthorized);
 
+    public static readonly Error UserNotFound =
+        new("User.UserNotFound", "User not found", StatusCodes.Status404NotFound);
+
+    public static readonly Error InvalidRoles =
+        new("Role.InvalidRoles", "Invalid roles", StatusCodes.Status400BadRequest);
+
+    public static readonly Error DuplicatedEmail =
+       new("User.DuplicatedEmail", "Another user with the same email is already exists", StatusCodes.Status409Conflict);
+
+    public static readonly Error LockedUser =
+        new("User.LockedUser", "Locked user, please contact your administrator", StatusCodes.Status401Unauthorized);
+
+    public static readonly Error DisabledUser =
+        new Error("User.DisabledUser", "The user account is disabled", StatusCodes.Status401Unauthorized);
     public static readonly Error InvalidJwtToken =
         new Error("User.InvalidJwtToken", "Invalid JWT token", StatusCodes.Status401Unauthorized);
 
