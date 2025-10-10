@@ -1,4 +1,5 @@
-﻿using SurveyManagement.Contracts.Questions;
+﻿using SurveyManagement.Contracts.Common;
+using SurveyManagement.Contracts.Questions;
 
 namespace SurveyManagement.Controllers;
 
@@ -11,9 +12,9 @@ public class QuestionsController(IQuestionService questionService) : ControllerB
 
     [HttpGet("")]
     [HasPermission(Permissions.GetQuestions)]
-    public async Task<IActionResult> GetAll([FromRoute] int pollId, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetAll([FromRoute] int pollId, [FromQuery] RequestFilters filters, CancellationToken cancellationToken)
     {
-        var result = await _questionService.GetAllAsync(pollId, cancellationToken);
+        var result = await _questionService.GetAllAsync(pollId, filters, cancellationToken);
 
         return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
     }
