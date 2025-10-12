@@ -1,8 +1,11 @@
 using Hangfire;
 using HangfireBasicAuthenticationFilter;
+using HealthChecks.UI.Client;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.OpenApi.Models;
 using Serilog;
+using SurveyManagement.Health;
 using SurveyManagement.Settings;
 using System.Reflection;
 using System.Text;
@@ -100,6 +103,11 @@ builder.Services.AddScoped<IUserService, UserService>();
 
 builder.Services.Configure<MailSettings>(configuration.GetSection(nameof(MailSettings)));
 
+builder.Services.AddHealthChecks()
+    .AddSqlServer(name: "database", connectionString: connectionString)
+    .AddHangfire(options => { options.MinimumAvailableServers = 1; })
+    .AddCheck<MailProviderHealthCheck>(name: "mail service");
+
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 
@@ -179,5 +187,10 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.UseExceptionHandler();
+
+app.MapHealthChecks("health", new HealthCheckOptions
+{
+    ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+});
 
 app.Run();
