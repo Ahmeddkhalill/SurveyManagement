@@ -3,25 +3,27 @@ using HangfireBasicAuthenticationFilter;
 using HealthChecks.UI.Client;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Identity.UI.Services;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.OpenApi.Models;
 using Serilog;
 using SurveyManagement.Health;
 using SurveyManagement.Settings;
+using SurveyManagement.RateLimiting;
 using System.Reflection;
 using System.Text;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
+
 
 builder.Host.UseSerilog((context, configuration) =>
     configuration.ReadFrom.Configuration(context.Configuration)
 );
 
-builder.Services.AddHybridCache();
-
 var configuration = builder.Configuration;
 
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ??
-    throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+var connectionString = configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
@@ -65,65 +67,24 @@ builder.Services.AddSwaggerGen(options =>
 
 var mappingConfig = TypeAdapterConfig.GlobalSettings;
 mappingConfig.Scan(Assembly.GetExecutingAssembly());
+builder.Services.AddSingleton<IMapper>(new Mapper(mappingConfig));
 
 builder.Services.AddIdentity<ApplicationUser, ApplicationRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
 
-builder.Services.AddOptions<JwtOptions>().BindConfiguration(JwtOptions.SectionName)
-    .ValidateDataAnnotations().ValidateOnStart();
-
-// Add Hangfire services.
-builder.Services.AddHangfire(config => config
-    .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
-    .UseSimpleAssemblyNameTypeSerializer()
-    .UseRecommendedSerializerSettings()
-    .UseSqlServerStorage(configuration.GetConnectionString("HangfireConnection")));
-
-// Add the processing server as IHostedService
-builder.Services.AddHangfireServer();
+builder.Services.AddOptions<JwtOptions>()
+    .BindConfiguration(JwtOptions.SectionName)
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
 
 var jwtSettings = configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>();
-
-builder.Services.AddSingleton<IMapper>(new Mapper(mappingConfig));
-builder.Services.AddSingleton<IJwtProvider, JwtProvider>();
-
-builder.Services.AddTransient<IAuthorizationHandler, PermissionAuthorizationHandler>();
-builder.Services.AddTransient<IAuthorizationPolicyProvider, PermissionAuthorizationPolicyProvider>();
-
-builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<IRoleService, RoleService>();
-builder.Services.AddScoped<IEmailSender, EmailService>();
-builder.Services.AddScoped<IPollService, PollService>();
-builder.Services.AddScoped<IQuestionService, QuestionService>();
-builder.Services.AddScoped<IVoteService, VoteService>();
-builder.Services.AddScoped<IResultService, ResultService>();
-builder.Services.AddScoped<INotificationService, NotificationService>();
-builder.Services.AddScoped<IUserService, UserService>();
-
-builder.Services.Configure<MailSettings>(configuration.GetSection(nameof(MailSettings)));
-
-builder.Services.AddHealthChecks()
-    .AddSqlServer(name: "database", connectionString: connectionString)
-    .AddHangfire(options => { options.MinimumAvailableServers = 1; })
-    .AddCheck<MailProviderHealthCheck>(name: "mail service");
-
-builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
-builder.Services.AddProblemDetails();
-
-builder.Services.AddHttpContextAccessor();
-
-
-
-builder.Services.AddFluentValidationAutoValidation()
-    .AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
 
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 })
-
 .AddJwtBearer(o =>
 {
     o.SaveToken = true;
@@ -146,24 +107,111 @@ builder.Services.Configure<IdentityOptions>(options =>
     options.User.RequireUniqueEmail = true;
 });
 
+builder.Services.AddHangfire(config => config
+    .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+    .UseSimpleAssemblyNameTypeSerializer()
+    .UseRecommendedSerializerSettings()
+    .UseSqlServerStorage(configuration.GetConnectionString("HangfireConnection")));
+
+builder.Services.AddHangfireServer();
+builder.Services.AddHybridCache();
+
+builder.Services.AddTransient<IAuthorizationHandler, PermissionAuthorizationHandler>();
+builder.Services.AddTransient<IAuthorizationPolicyProvider, PermissionAuthorizationPolicyProvider>();
+
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IJwtProvider, JwtProvider>();
+builder.Services.AddScoped<IRoleService, RoleService>();
+builder.Services.AddScoped<IEmailSender, EmailService>();
+builder.Services.AddScoped<IPollService, PollService>();
+builder.Services.AddScoped<IQuestionService, QuestionService>();
+builder.Services.AddScoped<IVoteService, VoteService>();
+builder.Services.AddScoped<IResultService, ResultService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IUserService, UserService>();
+
+builder.Services.Configure<MailSettings>(configuration.GetSection(nameof(MailSettings)));
+
+builder.Services.AddHealthChecks()
+    .AddSqlServer(name: "database", connectionString: connectionString)
+    .AddHangfire(options => { options.MinimumAvailableServers = 1; })
+    .AddCheck<MailProviderHealthCheck>(name: "mail service");
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromSeconds(10),
+                QueueLimit = 2,
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+            }));
+
+    options.AddPolicy(RateLimiters.IpLimiter, context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 2,
+                Window = TimeSpan.FromSeconds(20),
+                QueueLimit = 0
+            })
+    );
+
+    options.AddPolicy(RateLimiters.UserLimiter, context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: context.User.Identity?.IsAuthenticated == true
+                ? context.User.GetUserId() ?? "anonymous"
+                : "anonymous",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromSeconds(30),
+                QueueLimit = 0
+            })
+    );
+
+    options.AddConcurrencyLimiter(RateLimiters.ConcurrencyLimiter, limiterOptions =>
+    {
+        limiterOptions.PermitLimit = 100;
+        limiterOptions.QueueLimit = 50;
+        limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+    });
+});
+
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
+builder.Services.AddHttpContextAccessor();
+
+builder.Services.AddFluentValidationAutoValidation()
+    .AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
+
 var app = builder.Build();
 
 app.UseSwagger();
-
 app.UseSwaggerUI(c =>
 {
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "Survey Management API v1");
     c.DocumentTitle = "Survey Management API";
-    c.RoutePrefix = string.Empty; 
+    c.RoutePrefix = string.Empty;
 });
 
 app.UseSerilogRequestLogging();
-
 app.UseHttpsRedirection();
+
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.UseRateLimiter();
 
 app.UseHangfireDashboard("/jobs", new DashboardOptions
 {
-    Authorization = 
+    Authorization =
     [
         new HangfireCustomBasicAuthenticationFilter
         {
@@ -174,21 +222,19 @@ app.UseHangfireDashboard("/jobs", new DashboardOptions
     DashboardTitle = "Survey Management Dashboard"
 });
 
-var scopeFactory = app.Services.GetRequiredService<IServiceScopeFactory>();
-using var scope = scopeFactory.CreateScope();
-var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
-
-RecurringJob.AddOrUpdate("SendNewPollsNotification ", () => notificationService.SendNewPollsNotification(null), Cron.Daily);
-
-app.UseAuthentication();
-
-app.UseAuthorization();
+using (var scope = app.Services.CreateScope())
+{
+    var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
+    RecurringJob.AddOrUpdate("SendNewPollsNotification",
+        () => notificationService.SendNewPollsNotification(null),
+        Cron.Daily);
+}
 
 app.MapControllers();
 
 app.UseExceptionHandler();
 
-app.MapHealthChecks("health", new HealthCheckOptions
+app.MapHealthChecks("/health", new HealthCheckOptions
 {
     ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
 });

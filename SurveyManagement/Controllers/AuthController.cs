@@ -1,4 +1,7 @@
-﻿namespace SurveyManagement.Controllers;
+﻿using Microsoft.AspNetCore.RateLimiting;
+using SurveyManagement.RateLimiting;
+
+namespace SurveyManagement.Controllers;
 
 [Route("[controller]")]
 [ApiController]
@@ -7,6 +10,7 @@ public class AuthController(IAuthService authService) : ControllerBase
     private readonly IAuthService _authService = authService;
 
     [HttpPost("login")]
+    [EnableRateLimiting(RateLimiters.IpLimiter)]
     public async Task<IActionResult> LoginAsync([FromBody] LoginRequest request)
     {
         var authResult = await _authService.GetTokenAsync(request.Email, request.Password);
@@ -28,6 +32,7 @@ public class AuthController(IAuthService authService) : ControllerBase
     }
 
     [HttpPost("register")]
+    [EnableRateLimiting("concurrency")]
     public async Task<IActionResult> Register([FromBody] RegisterRequest request, CancellationToken cancellationToken)
     {
         var result = await _authService.RegisterAsync(request, cancellationToken);
