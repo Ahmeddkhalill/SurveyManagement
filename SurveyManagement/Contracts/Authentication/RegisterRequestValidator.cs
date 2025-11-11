@@ -1,6 +1,4 @@
-﻿using SurveyManagement.Abstractions.Consts;
-
-namespace SurveyManagement.Contracts.Authentication;
+﻿namespace SurveyManagement.Contracts.Authentication;
 
 public class RegisterRequestValidator : AbstractValidator<RegisterRequest>
 {

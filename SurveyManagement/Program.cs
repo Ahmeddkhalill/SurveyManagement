@@ -1,3 +1,4 @@
+using Asp.Versioning;
 using Hangfire;
 using HangfireBasicAuthenticationFilter;
 using HealthChecks.UI.Client;
@@ -7,8 +8,8 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.OpenApi.Models;
 using Serilog;
 using SurveyManagement.Health;
-using SurveyManagement.Settings;
 using SurveyManagement.RateLimiting;
+using SurveyManagement.Settings;
 using System.Reflection;
 using System.Text;
 using System.Threading.RateLimiting;
@@ -130,7 +131,10 @@ builder.Services.AddScoped<IResultService, ResultService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IUserService, UserService>();
 
-builder.Services.Configure<MailSettings>(configuration.GetSection(nameof(MailSettings)));
+builder.Services.AddOptions<MailSettings>()
+    .BindConfiguration(nameof(MailSettings))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
 
 builder.Services.AddHealthChecks()
     .AddSqlServer(name: "database", connectionString: connectionString)
@@ -182,6 +186,15 @@ builder.Services.AddRateLimiter(options =>
         limiterOptions.QueueLimit = 50;
         limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
     });
+});
+
+builder.Services.AddApiVersioning(options =>
+{
+    options.ApiVersionReader = new UrlSegmentApiVersionReader();
+}).AddApiExplorer(options =>
+{
+    options.GroupNameFormat = "'v'V";
+    options.SubstituteApiVersionInUrl = true;
 });
 
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();

@@ -1,7 +1,4 @@
-﻿
-using SurveyManagement.Abstractions.Consts;
-
-namespace SurveyManagement.Persistence.ModelsConfigurations;
+﻿namespace SurveyManagement.Persistence.ModelsConfigurations;
 
 public class RoleConfiguration : IEntityTypeConfiguration<ApplicationRole>
 {

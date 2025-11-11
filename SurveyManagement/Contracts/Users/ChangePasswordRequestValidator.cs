@@ -1,6 +1,4 @@
-﻿using SurveyManagement.Abstractions.Consts;
-
-namespace SurveyManagement.Contracts.Users;
+﻿namespace SurveyManagement.Contracts.Users;
 
 public class ChangePasswordRequestValidator : AbstractValidator<ChangePasswordRequest>
 {

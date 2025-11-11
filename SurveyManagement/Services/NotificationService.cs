@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Identity.UI.Services;
+﻿using Microsoft.AspNetCore.Identity.UI.Services;
 using SurveyManagement.Helpers;
 
 namespace SurveyManagement.Services;
@@ -30,14 +29,13 @@ public class NotificationService(ApplicationDbContext context, UserManager<Appli
                 .ToListAsync();
         }
 
-        //TODO: Select members only 
-        var users = await _userManager.Users.ToListAsync();
+        var users = await _userManager.GetUsersInRoleAsync(DefaultRoles.Member);
 
         var origin = _httpContextAccessor.HttpContext?.Request.Headers.Origin;
 
         foreach (var poll in polls)
         {
-            foreach(var user in users)
+            foreach (var user in users)
             {
                 var placeHolders = new Dictionary<string, string>
                 {

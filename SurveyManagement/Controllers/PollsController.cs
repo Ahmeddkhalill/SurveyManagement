@@ -1,13 +1,17 @@
-﻿namespace SurveyManagement.Controllers;
+﻿using Asp.Versioning;
 
-[Route("api/[controller]")]
+namespace SurveyManagement.Controllers;
+
+[ApiVersion("1")]
+[ApiVersion("2")]
+[Route("api/v{v:apiVersion}/[controller]")]
 [ApiController]
-
 
 public class PollsController(IPollService pollService) : ControllerBase
 {
     private readonly IPollService _pollService = pollService;
 
+    [MapToApiVersion("1")]
     [HttpGet("")]
     [HasPermission(Permissions.GetPolls)]
     public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
@@ -15,11 +19,19 @@ public class PollsController(IPollService pollService) : ControllerBase
         return Ok(await _pollService.GetAllAsync(cancellationToken));
     }
 
+    [MapToApiVersion("2")]
     [HttpGet("current")]
     [Authorize(Roles = DefaultRoles.Member)]
-    public async Task<IActionResult> GetCurrent(CancellationToken cancellationToken)
+    public async Task<IActionResult> GetCurrentV1(CancellationToken cancellationToken)
     {
-        return Ok(await _pollService.GetCurrentAsync(cancellationToken));
+        return Ok(await _pollService.GetCurrentAsyncV1(cancellationToken));
+    }
+
+    [HttpGet("current")]
+    [Authorize(Roles = DefaultRoles.Member)]
+    public async Task<IActionResult> GetCurrentV2(CancellationToken cancellationToken)
+    {
+        return Ok(await _pollService.GetCurrentAsyncV2(cancellationToken));
     }
 
     [HttpGet("{id}")]

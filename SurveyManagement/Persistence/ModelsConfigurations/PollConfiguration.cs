@@ -1,6 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.Metadata.Builders;
-
-namespace SurveyManagement.Persistence.ModelsConfigurations;
+﻿namespace SurveyManagement.Persistence.ModelsConfigurations;
 
 public class PollConfiguration : IEntityTypeConfiguration<Poll>
 {

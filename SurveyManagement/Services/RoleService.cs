@@ -1,5 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
-using SurveyManagement.Contracts.Roles;
+﻿using SurveyManagement.Contracts.Roles;
 
 namespace SurveyManagement.Services;
 
@@ -12,7 +11,7 @@ public class RoleService(RoleManager<ApplicationRole> roleManager, ApplicationDb
         await _roleManager.Roles
         .Where(x => !x.IsDefault && (!x.IsDeleted || (includeDisabled.HasValue && includeDisabled.Value)))
         .ProjectToType<RoleResponse>()
-        .ToListAsync(cancellationToken); 
+        .ToListAsync(cancellationToken);
 
     public async Task<Result<RoleDetailResponse>> GetAsync(string id)
     {
@@ -21,8 +20,8 @@ public class RoleService(RoleManager<ApplicationRole> roleManager, ApplicationDb
 
         var permissions = await _roleManager.GetClaimsAsync(role);
 
-        var response = new RoleDetailResponse(role.Id,role.Name!, role.IsDeleted, permissions.Select(x => x.Value));
-        
+        var response = new RoleDetailResponse(role.Id, role.Name!, role.IsDeleted, permissions.Select(x => x.Value));
+
         return Result.Success(response);
     }
 

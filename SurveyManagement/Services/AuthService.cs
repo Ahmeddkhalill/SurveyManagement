@@ -31,7 +31,7 @@ public class AuthService(
         if (await _userManager.FindByEmailAsync(email) is not { } user)
             return Result.Failure<AuthResponse>(UserErrors.InvalidCredentials);
 
-        if(user.IsDisabled)
+        if (user.IsDisabled)
             return Result.Failure<AuthResponse>(UserErrors.DisabledUser);
 
         var result = await _signInManager.PasswordSignInAsync(user, password, false, true);
@@ -40,7 +40,7 @@ public class AuthService(
         {
             var (userRoles, userPermissions) = await GetUserRolesAndPermissions(user, cancellationToken);
 
-            var (token, expiresIn) = _jwtProvider.GenerateToken(user,userRoles,userPermissions);
+            var (token, expiresIn) = _jwtProvider.GenerateToken(user, userRoles, userPermissions);
             var refreshToken = GenerateRefreshToken();
             var refreshTokenExpiration = DateTime.UtcNow.AddDays(_refreshTokenExpiryDays);
 
@@ -93,7 +93,7 @@ public class AuthService(
         var (userRoles, userPermissions) = await GetUserRolesAndPermissions(user, cancellationToken);
 
 
-        var (newToken, expiresIn) = _jwtProvider.GenerateToken(user, userRoles,userPermissions);
+        var (newToken, expiresIn) = _jwtProvider.GenerateToken(user, userRoles, userPermissions);
         var newRefreshToken = GenerateRefreshToken();
         var refreshTokenExpiration = DateTime.UtcNow.AddDays(_refreshTokenExpiryDays);
 

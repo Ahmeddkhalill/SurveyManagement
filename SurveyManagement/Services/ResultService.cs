@@ -9,13 +9,13 @@ public class ResultService(ApplicationDbContext context) : IResultService
     public async Task<Result<PollVotesResponse>> GetPollVotesAsync(int pollId, CancellationToken cancellationToken = default)
     {
         var pollVotes = await _context.Polls
-            .Where ( x => x.Id == pollId)
-            .Select( x => new PollVotesResponse(
+            .Where(x => x.Id == pollId)
+            .Select(x => new PollVotesResponse(
                 x.Title,
-                x.Votes.Select( v => new VoteResponse(
+                x.Votes.Select(v => new VoteResponse(
                     $"{v.User.FirstName} {v.User.LastName}",
                             v.SubmittedOn,
-                            v.VoteAnswers.Select( a => new QuestionAnswerResponse(
+                            v.VoteAnswers.Select(a => new QuestionAnswerResponse(
                                 a.Question.Content,
                                 a.Answer.Content
                             ))

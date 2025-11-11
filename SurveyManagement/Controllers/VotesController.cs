@@ -21,12 +21,12 @@ public class VotesController(IQuestionService questionService, IVoteService vote
     [HttpPost("")]
     public async Task<IActionResult> Vote([FromRoute] int pollId, [FromBody] VoteRequest request, CancellationToken cancellationToken)
     {
-        var result = await _voteService.AddAsync(pollId,User.GetUserId()! ,request, cancellationToken);
+        var result = await _voteService.AddAsync(pollId, User.GetUserId()!, request, cancellationToken);
 
         if (result.IsSuccess)
             return Created();
 
-        return result.ToProblem();  
+        return result.ToProblem();
 
     }
 }

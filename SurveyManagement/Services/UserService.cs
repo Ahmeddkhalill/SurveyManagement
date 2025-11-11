@@ -2,14 +2,14 @@
 
 namespace SurveyManagement.Services;
 
-public class UserService(UserManager<ApplicationUser> userManager, IRoleService roleService ,ApplicationDbContext context) : IUserService
+public class UserService(UserManager<ApplicationUser> userManager, IRoleService roleService, ApplicationDbContext context) : IUserService
 {
     private readonly UserManager<ApplicationUser> _userManager = userManager;
     private readonly IRoleService _roleService = roleService;
     private readonly ApplicationDbContext _context = context;
 
     public async Task<IEnumerable<UserResponse>> GetAllAsync(CancellationToken cancellationToken = default) =>
-        
+
         await (from u in _context.Users
                join ur in _context.UserRoles on u.Id equals ur.UserId
                join r in _context.Roles on ur.RoleId equals r.Id into roles
@@ -74,8 +74,8 @@ public class UserService(UserManager<ApplicationUser> userManager, IRoleService 
     {
         var user = await _userManager.FindByIdAsync(userId);
         var result = await _userManager.ChangePasswordAsync(user!, request.CurrentPassword, request.NewPassword);
-        
-        if (result.Succeeded)       
+
+        if (result.Succeeded)
             return Result.Success();
 
         var error = result.Errors.First();
@@ -95,7 +95,7 @@ public class UserService(UserManager<ApplicationUser> userManager, IRoleService 
     public async Task<Result> UpdateProfileAsync(string userId, UpdateProfileRequest request)
     {
         await _userManager.Users.Where(x => x.Id == userId)
-            .ExecuteUpdateAsync(setters => 
+            .ExecuteUpdateAsync(setters =>
             setters
                 .SetProperty(u => u.FirstName, request.FirstName)
                 .SetProperty(u => u.LastName, request.LastName)
@@ -110,7 +110,7 @@ public class UserService(UserManager<ApplicationUser> userManager, IRoleService 
 
         var userRoles = await _userManager.GetRolesAsync(user);
 
-        var response = (user, userRoles).Adapt<UserResponse>(); 
+        var response = (user, userRoles).Adapt<UserResponse>();
 
         return Result.Success(response);
     }
@@ -153,7 +153,7 @@ public class UserService(UserManager<ApplicationUser> userManager, IRoleService 
         user.IsDisabled = !user.IsDisabled;
 
         var result = await _userManager.UpdateAsync(user);
-        
+
         if (result.Succeeded)
             return Result.Success();
 
@@ -166,9 +166,9 @@ public class UserService(UserManager<ApplicationUser> userManager, IRoleService 
     {
         if (await _userManager.FindByIdAsync(id) is not { } user)
             return Result.Failure(UserErrors.UserNotFound);
-        
+
         var result = await _userManager.SetLockoutEndDateAsync(user, null);
-        
+
         if (result.Succeeded)
             return Result.Success();
 

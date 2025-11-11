@@ -19,7 +19,7 @@ public class RolesController(IRoleService roleService) : ControllerBase
 
     [HttpGet("{id}")]
     [HasPermission(Permissions.GetRoles)]
-    public async Task<IActionResult> Get([FromRoute]string id)
+    public async Task<IActionResult> Get([FromRoute] string id)
     {
         var result = await _roleService.GetAsync(id);
         return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
